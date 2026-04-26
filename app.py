@@ -4,10 +4,14 @@ import os
 
 app = Flask(__name__)
 
-# ---------- LOAD FILE SAFELY ----------
+# ---------- ENV VARIABLES ----------
+INDEX_FILE = os.getenv("INDEX_FILE", "index.txt")
+DATA_FILE = os.getenv("DATA_FILE", "file.json")
+
+# ---------- LOAD DATA ----------
 def load_lines():
     try:
-        with open("file.json", "r") as f:
+        with open(DATA_FILE, "r") as f:
             return json.load(f)
     except Exception as e:
         print("File load error:", e)
@@ -15,9 +19,7 @@ def load_lines():
 
 lines = load_lines()
 
-INDEX_FILE = "index.txt"
-
-# ---------- INDEX HANDLING ----------
+# ---------- INDEX ----------
 def get_index():
     try:
         with open(INDEX_FILE, "r") as f:
@@ -32,14 +34,13 @@ def save_index(i):
     except Exception as e:
         print("Index save error:", e)
 
-# ---------- ROOT: SEQUENTIAL MODE ----------
+# ---------- SEQUENTIAL ----------
 @app.route("/")
 def get_next():
     if not lines:
         return jsonify({"error": "No data found"}), 500
 
     index = get_index()
-
     line = lines[index]
 
     response = {
@@ -48,20 +49,18 @@ def get_next():
         "flirt_line": line
     }
 
-    # move forward
     index = (index + 1) % len(lines)
     save_index(index)
 
     return jsonify(response)
 
-# ---------- DIRECT INDEX MODE ----------
+# ---------- DIRECT ACCESS ----------
 @app.route("/<int:num>")
 def get_by_number(num):
     if not lines:
         return jsonify({"error": "No data found"}), 500
 
     index = (num - 1) % len(lines)
-
     save_index(index + 1)
 
     return jsonify({
@@ -71,7 +70,7 @@ def get_by_number(num):
         "flirt_line": lines[index]
     })
 
-# ---------- RENDER ENTRY POINT ----------
+# ---------- RENDER ENTRY ----------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
